@@ -43,6 +43,8 @@ targets:
       properties:
         CFBundleDisplayName: LocalFlow
         CFBundleName: LocalFlow
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         LSUIElement: true
         LSMinimumSystemVersion: "14.0"
         NSMicrophoneUsageDescription: LocalFlow records your voice while you hold the hotkey and transcribes it entirely on this Mac.

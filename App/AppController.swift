@@ -11,6 +11,7 @@ final class AppController: ObservableObject {
     static let shared = AppController()
 
     enum IconState { case idle, recording, processing }
+    enum SettingsTab: String { case general, cleanup, models, privacy }
 
     @Published private(set) var icon: IconState = .idle
     @Published private(set) var statusLine = "Starting…"
@@ -24,6 +25,8 @@ final class AppController: ObservableObject {
     @Published private(set) var hotkeyActive = false
     /// Incremented to ask the SwiftUI layer (which owns `openSettings`) to show the Settings window.
     @Published private(set) var settingsRequests = 0
+    /// Tab the Settings window should select on its next open.
+    @Published private(set) var requestedSettingsTab: SettingsTab = .general
 
     private var engine: DictationEngine
     private let recorder = AudioRecorder()
@@ -63,6 +66,14 @@ final class AppController: ObservableObject {
         loadModels()
         DistributedNotificationCenter.default().addObserver(forName: LocalFlowIPC.openSettings, object: nil, queue: .main) { [weak self] _ in
             self?.showSettings()
+        }
+        // First run on a new Mac: models are not there yet. Open Settings → Models so the
+        // Download button is the first thing people see, and say so in a notification.
+        if !ModelManager.status(config: config).allPresent {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { [weak self] in
+                self?.showSettings(tab: .models)
+                self?.notify("Welcome to LocalFlow", "One-time setup: download the two models (~2.8 GB), then grant the permissions macOS asks for.")
+            }
         }
         ticker = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
             Task { @MainActor in self?.tick() }
@@ -270,8 +281,9 @@ final class AppController: ObservableObject {
 
     /// Open the SwiftUI Settings scene programmatically (⌘, equivalent). The menu bar label view
     /// observes `settingsRequests` and calls SwiftUI's `openSettings` action.
-    func showSettings() {
-        logger.info("settings window requested")
+    func showSettings(tab: SettingsTab = .general) {
+        logger.info("settings window requested (\(tab.rawValue))")
+        requestedSettingsTab = tab
         NSApp.activate(ignoringOtherApps: true)
         settingsRequests += 1
     }

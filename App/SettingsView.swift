@@ -6,25 +6,32 @@ import LocalFlowCore
 /// Toggles, pickers and steppers apply immediately; text fields apply on "Apply".
 struct SettingsView: View {
     @ObservedObject var controller: AppController
+    @State private var tab: AppController.SettingsTab = .general
 
     var body: some View {
-        TabView {
+        TabView(selection: $tab) {
             GeneralTab(controller: controller)
                 .tabItem { Label("General", systemImage: "keyboard") }
+                .tag(AppController.SettingsTab.general)
             CleanupTab(controller: controller)
                 .tabItem { Label("Cleanup", systemImage: "text.badge.checkmark") }
+                .tag(AppController.SettingsTab.cleanup)
             ModelsTab(controller: controller)
                 .tabItem { Label("Models", systemImage: "cpu") }
+                .tag(AppController.SettingsTab.models)
             PrivacyTab(controller: controller)
                 .tabItem { Label("Privacy", systemImage: "lock.shield") }
+                .tag(AppController.SettingsTab.privacy)
         }
         .frame(width: 580, height: 470)
         .onAppear {
             // LSUIElement apps are never active, so the Settings window would open behind everything.
             NSApp.activate(ignoringOtherApps: true)
             NSApp.windows.first { $0.title.contains("Settings") }?.makeKeyAndOrderFront(nil)
+            tab = controller.requestedSettingsTab
             controller.refreshModelStatus()
         }
+        .onChange(of: controller.settingsRequests) { _, _ in tab = controller.requestedSettingsTab }
     }
 }
 

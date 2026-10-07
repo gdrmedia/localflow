@@ -97,7 +97,21 @@ End to end on 12 synthesized utterances (1.5–3.4 s of speech): STT 56–89 ms,
 
 ## Install
 
-There are no signed binaries yet; build it (about 8 minutes the first time, mostly compiling MLX):
+**Easiest (one line, no Gatekeeper prompt):** open Terminal and paste
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/gdrmedia/localflow/main/scripts/install.sh | bash
+```
+
+It checks you are on Apple Silicon + macOS 14, downloads the latest release (~230 MB) to `~/Applications/LocalFlow.app`, launches it, and the Settings window opens on the Models tab for the one-time model download (~2.8 GB). Then grant Microphone, Accessibility and Input Monitoring when asked, quit and reopen once, and you are dictating.
+
+**Or the DMG:** download `LocalFlow-<version>.dmg` from [Releases](https://github.com/gdrmedia/localflow/releases), drag LocalFlow to Applications, open it. Because this build is not notarized, macOS will say it cannot verify the developer: go to System Settings → Privacy & Security → scroll down → **Open Anyway** (once). The installer above avoids that step because files fetched with `curl` are not quarantined.
+
+Both artifacts are ad-hoc signed with the hardened runtime; `SHA256SUMS.txt` is attached to each release. When a Developer ID certificate is available, `scripts/package.sh` + `scripts/notarize.sh` produce a notarized DMG with no prompt at all.
+
+### Build from source
+
+About 8 minutes the first time (mostly compiling MLX):
 
 ```bash
 brew install xcodegen
@@ -159,9 +173,10 @@ scripts/check-network.sh                        # lsof over every LocalFlow proc
 - Transcripts are written to disk only if you turn history on.
 - Verified: `scripts/check-network.sh` polled every 0.5 s through a full transcription run and the app idling with models loaded: 0 sockets.
 
-## Build from source
+## Build and package
 
 ```bash
+scripts/package.sh               # ad-hoc signed DMG + zip + SHA256SUMS in dist/  (SIGN_IDENTITY=… for Developer ID)
 scripts/build.sh                 # generate project, build app + CLI (Release), verify signature, install
 scripts/build.sh --no-install    # just build
 DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcodebuild test -project LocalFlow.xcodeproj -scheme LocalFlow -configuration Release -derivedDataPath build/DerivedData -destination 'platform=macOS,arch=arm64' -skipPackagePluginValidation -skipMacroValidation
