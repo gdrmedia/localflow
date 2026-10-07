@@ -1,0 +1,4 @@
+// Copied to Signing.xcconfig by scripts/build.sh (auto-detected). Edit that file to pin a specific identity.
+// Ad-hoc: CODE_SIGN_IDENTITY = -   (permissions must be re-granted after each rebuild)
+CODE_SIGN_IDENTITY = Apple Development
+DEVELOPMENT_TEAM = YOURTEAMID

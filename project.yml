@@ -1,0 +1,98 @@
+name: LocalFlow
+options:
+  bundleIdPrefix: com.gdrmedia
+  deploymentTarget:
+    macOS: "14.0"
+  createIntermediateGroups: true
+  generateEmptyDirectories: false
+  xcodeVersion: "26.0"
+# Signing identity + team come from Signing.xcconfig (gitignored). scripts/build.sh generates it
+# from the first Apple Development identity in the keychain, or falls back to ad-hoc signing.
+configFiles:
+  Debug: Signing.xcconfig
+  Release: Signing.xcconfig
+settings:
+  base:
+    SWIFT_VERSION: "5.0"
+    MACOSX_DEPLOYMENT_TARGET: "14.0"
+    CODE_SIGN_STYLE: Manual
+    PROVISIONING_PROFILE_SPECIFIER: ""
+    SWIFT_STRICT_CONCURRENCY: minimal
+    DEAD_CODE_STRIPPING: YES
+    MARKETING_VERSION: 0.1.0
+    CURRENT_PROJECT_VERSION: 1
+  configs:
+    Debug:
+      SWIFT_OPTIMIZATION_LEVEL: "-Onone"
+    Release:
+      SWIFT_OPTIMIZATION_LEVEL: "-O"
+packages:
+  LocalFlowCore:
+    path: Core
+targets:
+  LocalFlow:
+    type: application
+    platform: macOS
+    sources:
+      - path: App
+        excludes: ["Info.plist", "LocalFlow.entitlements"]
+    dependencies:
+      - package: LocalFlowCore
+    info:
+      path: App/Info.plist
+      properties:
+        CFBundleDisplayName: LocalFlow
+        CFBundleName: LocalFlow
+        LSUIElement: true
+        LSMinimumSystemVersion: "14.0"
+        NSMicrophoneUsageDescription: LocalFlow records your voice while you hold the hotkey and transcribes it entirely on this Mac.
+        NSHumanReadableCopyright: 100% local dictation. No network, no telemetry.
+        NSPrincipalClass: NSApplication
+        NSAppTransportSecurity:
+          NSAllowsArbitraryLoads: false
+    entitlements:
+      path: App/LocalFlow.entitlements
+      properties:
+        com.apple.security.device.audio-input: true
+        com.apple.security.cs.disable-library-validation: false
+    settings:
+      base:
+        PRODUCT_NAME: LocalFlow
+        PRODUCT_BUNDLE_IDENTIFIER: com.gdrmedia.localflow
+        ENABLE_HARDENED_RUNTIME: YES
+        ENABLE_APP_SANDBOX: NO
+        COMBINE_HIDPI_IMAGES: YES
+        GENERATE_INFOPLIST_FILE: NO
+        LD_RUNPATH_SEARCH_PATHS: "$(inherited) @executable_path/../Frameworks"
+  localflow-cli:
+    type: tool
+    platform: macOS
+    sources: [CLI]
+    dependencies:
+      - package: LocalFlowCore
+    settings:
+      base:
+        PRODUCT_NAME: localflow-cli
+        PRODUCT_BUNDLE_IDENTIFIER: com.gdrmedia.localflow.cli
+        ENABLE_HARDENED_RUNTIME: YES
+schemes:
+  LocalFlow:
+    build:
+      targets:
+        LocalFlow: all
+    run:
+      config: Release
+    test:
+      config: Release
+      targets:
+        - package: LocalFlowCore/LocalFlowCoreTests
+    profile:
+      config: Release
+    archive:
+      config: Release
+  localflow-cli:
+    build:
+      targets:
+        localflow-cli: all
+    run:
+      config: Release
