@@ -24,6 +24,8 @@ public struct AppConfig: Codable, Equatable, Sendable {
     public var maxRecordingSeconds: Int
     public var vocabulary: [String]
     public var launchAtLogin: Bool
+    /// After pasting, leave the dictated text on the clipboard (true) or restore what was there (false).
+    public var keepOnClipboard: Bool
 
     public static let defaultSTTModel = "FluidInference/parakeet-tdt-0.6b-v3-coreml"
     public static let defaultLLMModel = "mlx-community/Qwen3-4B-Instruct-2507-4bit"
@@ -40,14 +42,15 @@ public struct AppConfig: Codable, Equatable, Sendable {
         pasteRawTranscript: false,
         sttModel: defaultSTTModel,
         llmModel: defaultLLMModel,
-        historyEnabled: false,
+        historyEnabled: true,
         maxRecordingSeconds: 300,
         vocabulary: defaultVocabulary,
-        launchAtLogin: true
+        launchAtLogin: true,
+        keepOnClipboard: true
     )
 
     public init(hotkey: HotkeyChoice, cleanupEnabled: Bool, pasteRawTranscript: Bool, sttModel: String,
-                llmModel: String, historyEnabled: Bool, maxRecordingSeconds: Int, vocabulary: [String], launchAtLogin: Bool = true) {
+                llmModel: String, historyEnabled: Bool, maxRecordingSeconds: Int, vocabulary: [String], launchAtLogin: Bool = true, keepOnClipboard: Bool = true) {
         self.hotkey = hotkey
         self.cleanupEnabled = cleanupEnabled
         self.pasteRawTranscript = pasteRawTranscript
@@ -57,10 +60,11 @@ public struct AppConfig: Codable, Equatable, Sendable {
         self.maxRecordingSeconds = AppConfig.clampSeconds(maxRecordingSeconds)
         self.vocabulary = vocabulary
         self.launchAtLogin = launchAtLogin
+        self.keepOnClipboard = keepOnClipboard
     }
 
     enum CodingKeys: String, CodingKey {
-        case hotkey, cleanupEnabled, pasteRawTranscript, sttModel, llmModel, historyEnabled, maxRecordingSeconds, vocabulary, launchAtLogin
+        case hotkey, cleanupEnabled, pasteRawTranscript, sttModel, llmModel, historyEnabled, maxRecordingSeconds, vocabulary, launchAtLogin, keepOnClipboard
     }
 
     public init(from decoder: Decoder) throws {
@@ -75,6 +79,7 @@ public struct AppConfig: Codable, Equatable, Sendable {
         maxRecordingSeconds = AppConfig.clampSeconds((try? c.decodeIfPresent(Int.self, forKey: .maxRecordingSeconds)) ?? d.maxRecordingSeconds)
         vocabulary = (try? c.decodeIfPresent([String].self, forKey: .vocabulary)) ?? d.vocabulary
         launchAtLogin = (try? c.decodeIfPresent(Bool.self, forKey: .launchAtLogin)) ?? d.launchAtLogin
+        keepOnClipboard = (try? c.decodeIfPresent(Bool.self, forKey: .keepOnClipboard)) ?? d.keepOnClipboard
         if sttModel.trimmingCharacters(in: .whitespaces).isEmpty { sttModel = d.sttModel }
         if llmModel.trimmingCharacters(in: .whitespaces).isEmpty { llmModel = d.llmModel }
     }

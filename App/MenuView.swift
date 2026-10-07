@@ -15,10 +15,9 @@ struct MenuView: View {
         Divider()
         SettingsLink { Text("Settings…") }
             .keyboardShortcut(",")
+        Button("History…") { controller.showHistory() }
+            .keyboardShortcut("h", modifiers: [.command, .shift])
         Button("Open Config") { controller.openConfig() }
-        if controller.config.historyEnabled {
-            Button("Open History") { controller.openHistory() }
-        }
         Button("Open Log") { controller.openLog() }
         Toggle("Launch at Login", isOn: Binding(get: { controller.launchAtLogin }, set: { _ in controller.toggleLaunchAtLogin() }))
         Button("Reload Config") { controller.reloadConfig() }

@@ -17,8 +17,9 @@ enum Paster {
     }
 
     /// Returns false when the ⌘V events could not be created; the text is then left on the clipboard.
+    /// `restorePrevious` puts the old clipboard back ~400 ms after the paste; otherwise the text stays on it.
     @discardableResult
-    static func paste(_ text: String) -> Bool {
+    static func paste(_ text: String, restorePrevious: Bool) -> Bool {
         let pb = NSPasteboard.general
         let snapshot = (pb.pasteboardItems ?? []).map { item -> NSPasteboardItem in
             let copy = NSPasteboardItem()
@@ -40,9 +41,11 @@ enum Paster {
         down.post(tap: .cghidEventTap)
         up.post(tap: .cghidEventTap)
 
-        DispatchQueue.main.asyncAfter(deadline: .now() + restoreDelay) {
-            pb.clearContents()
-            if !snapshot.isEmpty { pb.writeObjects(snapshot) }
+        if restorePrevious {
+            DispatchQueue.main.asyncAfter(deadline: .now() + restoreDelay) {
+                pb.clearContents()
+                if !snapshot.isEmpty { pb.writeObjects(snapshot) }
+            }
         }
         return true
     }

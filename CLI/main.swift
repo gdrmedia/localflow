@@ -15,6 +15,7 @@ localflow-cli — LocalFlow engine from the command line (100% local)
   --bench [--model <id>] [--runs N]
                                    prefix-cache OFF vs ON latency on a ~10 s transcript
   --settings                       ask the running LocalFlow app to open its Settings window
+  --history                        ask the running LocalFlow app to open its History window
   --verbose                        mirror the log to stderr
 """
 
@@ -77,6 +78,12 @@ func loadLLM(prefixCache: Bool = true) async throws -> MLXCleanupBackend {
 if has("--settings") {
     LocalFlowIPC.postOpenSettings()
     print("asked LocalFlow to open Settings")
+    exit(0)
+}
+
+if has("--history") {
+    LocalFlowIPC.postOpenHistory()
+    print("asked LocalFlow to open History")
     exit(0)
 }
 

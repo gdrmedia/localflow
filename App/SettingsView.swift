@@ -65,6 +65,13 @@ private struct GeneralTab: View {
                 Text("Recording stops and is processed automatically when the limit is reached.")
                     .font(.callout).foregroundStyle(.secondary)
             }
+            Section("Output") {
+                Text("The result is always copied to the clipboard and pasted into the focused field with ⌘V.")
+                    .font(.callout).foregroundStyle(.secondary)
+                Toggle("Keep the text on the clipboard after pasting", isOn: controller.binding(\.keepOnClipboard))
+                Text("Off = your previous clipboard contents are restored half a second after the paste.")
+                    .font(.callout).foregroundStyle(.secondary)
+            }
             Section("Startup") {
                 Toggle("Launch LocalFlow at login", isOn: controller.binding(\.launchAtLogin))
                 LabeledContent("Login item status", value: controller.launchAtLogin ? "registered" : "not registered")
@@ -210,15 +217,27 @@ private struct ModelsTab: View {
 
 private struct PrivacyTab: View {
     @ObservedObject var controller: AppController
+    @State private var confirmClear = false
 
     var body: some View {
         Form {
-            Section("Transcript history") {
-                Toggle("Keep a history of transcripts (raw + cleaned)", isOn: controller.binding(\.historyEnabled))
-                Text("Off by default. When on, every dictation is appended in clear text to history.jsonl. The log never contains transcripts.")
+            Section("Dictation history") {
+                Toggle("Keep a history of dictations (viewable in the History window)", isOn: controller.binding(\.historyEnabled))
+                Text("Every dictation is stored in clear text in history.jsonl on this Mac only. The log never contains transcripts.")
                     .font(.callout).foregroundStyle(.secondary)
                 HStack {
-                    Button("Open History") { controller.openHistory() }.disabled(!controller.config.historyEnabled)
+                    Button("Open History") { controller.showHistory() }
+                    Button("Clear History…") { confirmClear = true }.disabled(controller.history.isEmpty)
+                    Spacer()
+                    Text(controller.history.isEmpty ? "" : "\(controller.history.count) stored").font(.callout).foregroundStyle(.secondary)
+                }
+                .confirmationDialog("Delete all \(controller.history.count) dictations?", isPresented: $confirmClear, titleVisibility: .visible) {
+                    Button("Delete All", role: .destructive) { controller.clearHistory() }
+                    Button("Cancel", role: .cancel) {}
+                }
+            }
+            Section("Files") {
+                HStack {
                     Button("Open Log") { controller.openLog() }
                     Button("Open config.json") { controller.openConfig() }
                     Button("Reload config.json") { controller.reloadConfig() }

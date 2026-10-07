@@ -29,12 +29,10 @@ public actor DictationEngine {
     private let transcriber = Transcriber()
     private var backend: MLXCleanupBackend?
     private let logger: FlowLogger
-    private let history: DictationHistory
 
     public init(config: AppConfig, logger: FlowLogger = .shared) {
         self.config = config
         self.logger = logger
-        self.history = DictationHistory(url: LocalFlowPaths.historyFile)
     }
 
     public var modelsPresent: ModelManager.Status { ModelManager.status(config: config) }
@@ -115,7 +113,6 @@ public actor DictationEngine {
             let total = Date().timeIntervalSince(t0) * 1000
             logger.timing([("record", recordSeconds * 1000), ("stt", stt.processingMs), ("llm", cleaned.llmMs), ("total", total)])
             if let f = cleaned.fallbackReason { logger.warn("cleanup fallback: \(f)") }
-            if config.historyEnabled { history.append(raw: stt.text, cleaned: cleaned.text) }
             let text = TextSanity.isMeaningful(cleaned.text) ? cleaned.text : nil
             return DictationOutcome(text: text, raw: stt.text, skippedReason: text == nil ? "empty after cleanup" : nil,
                                     fallbackReason: cleaned.fallbackReason, sttMs: stt.processingMs, llmMs: cleaned.llmMs,
@@ -124,29 +121,6 @@ public actor DictationEngine {
             logger.error("processing failed: \(error)")
             return DictationOutcome(text: nil, raw: "", skippedReason: "error: \(error.localizedDescription)", fallbackReason: nil,
                                     sttMs: 0, llmMs: 0, totalMs: Date().timeIntervalSince(t0) * 1000, usedLLM: false)
-        }
-    }
-}
-
-/// Opt-in transcript history (historyEnabled). JSON lines: {"ts","raw","cleaned"}.
-public final class DictationHistory: @unchecked Sendable {
-    private let url: URL
-    private let lock = NSLock()
-    public init(url: URL) { self.url = url }
-
-    public func append(raw: String, cleaned: String) {
-        struct Line: Codable { let ts: String; let raw: String; let cleaned: String }
-        let f = ISO8601DateFormatter()
-        guard var data = try? JSONEncoder().encode(Line(ts: f.string(from: Date()), raw: raw, cleaned: cleaned)) else { return }
-        data.append(0x0A)
-        lock.lock(); defer { lock.unlock() }
-        if !FileManager.default.fileExists(atPath: url.path) {
-            FileManager.default.createFile(atPath: url.path, contents: nil)
-        }
-        if let h = try? FileHandle(forWritingTo: url) {
-            try? h.seekToEnd()
-            try? h.write(contentsOf: data)
-            try? h.close()
         }
     }
 }

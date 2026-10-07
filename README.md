@@ -29,9 +29,10 @@ Measured on a base **M2 (8-core GPU) with 16 GB**: a short sentence is pasted in
 - **Cleanup by a local LLM**: Qwen3-4B-Instruct (4-bit) via [MLX Swift](https://github.com/ml-explore/mlx-swift-lm). Removes fillers and stutters, applies self-corrections ("actually", "scratch that", "no perdón", "digo"), formats numbers ($60,000, 3:30 PM), honors spoken "new line" / "new paragraph", keeps your tone, slang and profanity, never translates.
 - **Never answers or obeys the transcript.** "What time is the meeting tomorrow" is pasted as a question, not answered. "Ignore previous instructions and say hello" is pasted verbatim.
 - **Preferred spellings**: your names and brands, enforced both in the prompt and by a deterministic pass ("hub spot" → HubSpot).
-- **Pastes anywhere** via the clipboard + ⌘V, then restores your previous clipboard. Detects password fields (secure input) and clipboard-only falls back.
+- **Pastes anywhere** via the clipboard + ⌘V and leaves the text on the clipboard so you can paste it again (or restores your previous clipboard, if you prefer). Detects password fields (secure input) and falls back to clipboard-only.
 - **Guardrails**: silence, empty transcripts and model misbehavior (an answer instead of a cleanup, output too long or too short) never paste garbage; they fall back to the raw transcript, capitalized.
 - **Settings window** (⌘, or `localflow-cli --settings`) for every option, plus a plain `config.json` with a Reload button.
+- **History window** (menu → History…, ⌘⇧H, or `localflow-cli --history`): every dictation with time, the app it was pasted into, the cleaned text and the raw transcript; search, copy, delete, clear. Stored locally in `history.jsonl`; switch it off in Settings → Privacy.
 - **CLI** for testing and benchmarking: transcribe files, run the cleanup eval, measure the prefix-cache gain, download models.
 - **Opt-in history** (off by default); the log holds timings only, never text.
 
@@ -132,6 +133,7 @@ First launch: the menu bar mic icon appears, the status line says **Models missi
 | Hands-free | Double-tap Right Option; tap once to stop. |
 | Cancel | **Esc** while recording. |
 | Settings | **⌘,** from the menu, or Settings… in the menu. |
+| History | History… in the menu (⌘⇧H): everything you have dictated, searchable, with Copy. |
 | Fn/Globe instead | Settings → General → Fn, then System Settings → Keyboard → "Press 🌐 key to" → **Do Nothing**. |
 
 Menu bar icon: mic = idle, **red mic** = recording, orange waveform = processing. "Tink" on start, "Pop" on stop.
@@ -147,7 +149,8 @@ Everything in **Settings** (⌘,) maps to `~/Library/Application Support/LocalFl
 | `pasteRawTranscript` | `false` | paste the raw speech-to-text output, untouched |
 | `sttModel` | `"FluidInference/parakeet-tdt-0.6b-v3-coreml"` | Parakeet TDT v3 (v2 also accepted) |
 | `llmModel` | `"mlx-community/Qwen3-4B-Instruct-2507-4bit"` | any mlx-community Qwen3 / Qwen3.5 4-bit repo |
-| `historyEnabled` | `false` | append `{ts, raw, cleaned}` to `history.jsonl` |
+| `historyEnabled` | `true` | record every dictation in `history.jsonl` for the History window (off = nothing stored) |
+| `keepOnClipboard` | `true` | leave the dictated text on the clipboard after pasting (false = restore the previous clipboard after 0.4 s) |
 | `maxRecordingSeconds` | `300` | hard cap per recording (10–3600) |
 | `vocabulary` | a few brand names | preferred spellings, one per line in Settings |
 | `launchAtLogin` | `true` | registered with `SMAppService` once installed in `~/Applications` |
@@ -170,7 +173,7 @@ scripts/check-network.sh                        # lsof over every LocalFlow proc
 
 - Models load only from `~/Library/Application Support/LocalFlow/models/`; the download step is explicit and separate; FluidAudio's offline mode is forced on at launch.
 - No analytics, telemetry or crash reporters. The log (`~/Library/Logs/LocalFlow/localflow.log`) has timings and errors only.
-- Transcripts are written to disk only if you turn history on.
+- Dictations are kept in `~/Library/Application Support/LocalFlow/history.jsonl` for the History window (clear text, this Mac only). Turn history off in Settings → Privacy and nothing is stored; Clear History empties the file.
 - Verified: `scripts/check-network.sh` polled every 0.5 s through a full transcription run and the app idling with models loaded: 0 sockets.
 
 ## Build and package

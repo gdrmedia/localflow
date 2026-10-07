@@ -27,12 +27,17 @@ final class AppController: ObservableObject {
     @Published private(set) var settingsRequests = 0
     /// Tab the Settings window should select on its next open.
     @Published private(set) var requestedSettingsTab: SettingsTab = .general
+    /// Incremented to ask the SwiftUI layer to open the History window.
+    @Published private(set) var historyRequests = 0
+    /// Newest first; mirrors history.jsonl.
+    @Published private(set) var history: [HistoryEntry] = []
 
     private var engine: DictationEngine
     private let recorder = AudioRecorder()
     private let monitor = HotkeyMonitor()
     private var machine = HotkeyStateMachine()
     private let store = AppConfigStore()
+    private let historyStore = DictationHistory(url: LocalFlowPaths.historyFile)
     private let logger = FlowLogger.shared
     private var ticker: Timer?
     private var inFlight = 0
@@ -67,6 +72,10 @@ final class AppController: ObservableObject {
         DistributedNotificationCenter.default().addObserver(forName: LocalFlowIPC.openSettings, object: nil, queue: .main) { [weak self] _ in
             self?.showSettings()
         }
+        DistributedNotificationCenter.default().addObserver(forName: LocalFlowIPC.openHistory, object: nil, queue: .main) { [weak self] _ in
+            self?.showHistory()
+        }
+        reloadHistory()
         // First run on a new Mac: models are not there yet. Open Settings → Models so the
         // Download button is the first thing people see, and say so in a notification.
         if !ModelManager.status(config: config).allPresent {
@@ -185,7 +194,13 @@ final class AppController: ObservableObject {
             let outcome = await engine.process(samples: samples, recordSeconds: seconds)
             inFlight -= 1
             if let text = outcome.text {
-                deliver(text)
+                let pasted = deliver(text)
+                if config.historyEnabled {
+                    let app = NSWorkspace.shared.frontmostApplication?.localizedName
+                    historyStore.append(HistoryEntry(raw: outcome.raw, cleaned: text, seconds: seconds, app: app,
+                                                     pasted: pasted, usedLLM: outcome.usedLLM))
+                    reloadHistory()
+                }
             } else if let reason = outcome.skippedReason, reason.hasPrefix("error") || reason == "models not ready" {
                 notify("Dictation failed", reason)
             }
@@ -199,20 +214,55 @@ final class AppController: ObservableObject {
 
     // MARK: - Output
 
-    private func deliver(_ text: String) {
+    /// Copies the text to the clipboard and pastes it into the focused field. Returns true when ⌘V was sent.
+    @discardableResult
+    private func deliver(_ text: String) -> Bool {
         if Paster.secureInputActive {
             Paster.copyOnly(text)
             notify("Secure input field", "Pasting is blocked here; the text is on your clipboard.")
-            return
+            return false
         }
         guard permissions.accessibility else {
             Paster.copyOnly(text)
             notify("Ready to paste", "Enable Accessibility for LocalFlow to paste automatically. The text is on your clipboard.")
-            return
+            return false
         }
-        if !Paster.paste(text) {
+        if !Paster.paste(text, restorePrevious: !config.keepOnClipboard) {
             notify("Ready to paste", "Couldn't send ⌘V; the text is on your clipboard.")
+            return false
         }
+        return true
+    }
+
+    // MARK: - History
+
+    func reloadHistory() {
+        history = historyStore.load()
+    }
+
+    func deleteHistory(id: UUID) {
+        historyStore.delete(id: id)
+        reloadHistory()
+    }
+
+    func clearHistory() {
+        historyStore.clear()
+        reloadHistory()
+        logger.info("history cleared")
+    }
+
+    func copyToClipboard(_ text: String) {
+        Paster.copyOnly(text)
+    }
+
+    func revealHistoryFile() {
+        NSWorkspace.shared.activateFileViewerSelecting([LocalFlowPaths.historyFile])
+    }
+
+    func showHistory() {
+        logger.info("history window requested")
+        NSApp.activate(ignoringOtherApps: true)
+        historyRequests += 1
     }
 
     private func notify(_ title: String, _ body: String) {
@@ -289,7 +339,6 @@ final class AppController: ObservableObject {
     }
 
     func openConfig() { NSWorkspace.shared.open(LocalFlowPaths.configFile) }
-    func openHistory() { NSWorkspace.shared.open(LocalFlowPaths.historyFile) }
     func openLog() { NSWorkspace.shared.open(LocalFlowPaths.logFile) }
     func revealModelsFolder() { NSWorkspace.shared.activateFileViewerSelecting([LocalFlowPaths.modelsDir]) }
 

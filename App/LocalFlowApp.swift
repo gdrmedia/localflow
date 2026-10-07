@@ -18,6 +18,11 @@ struct LocalFlowApp: App {
         Settings {
             SettingsView(controller: controller)
         }
+
+        Window("LocalFlow History", id: "history") {
+            HistoryView(controller: controller)
+        }
+        .defaultSize(width: 760, height: 560)
     }
 }
 
@@ -25,12 +30,17 @@ struct LocalFlowApp: App {
 struct MenuBarLabel: View {
     @ObservedObject var controller: AppController
     @Environment(\.openSettings) private var openSettings
+    @Environment(\.openWindow) private var openWindow
 
     var body: some View {
         Image(nsImage: MenuBarIcon.image(for: controller.icon))
             .onChange(of: controller.settingsRequests) { _, _ in
                 NSApp.activate(ignoringOtherApps: true)
                 openSettings()
+            }
+            .onChange(of: controller.historyRequests) { _, _ in
+                NSApp.activate(ignoringOtherApps: true)
+                openWindow(id: "history")
             }
     }
 }
