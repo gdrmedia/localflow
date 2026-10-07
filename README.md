@@ -103,7 +103,7 @@ End to end on 12 synthesized utterances (1.5–3.4 s of speech): STT 56–89 ms,
 curl -fsSL https://raw.githubusercontent.com/gdrmedia/localflow/main/scripts/install.sh | bash
 ```
 
-It checks you are on Apple Silicon + macOS 14, downloads the latest release (~230 MB) to `~/Applications/LocalFlow.app`, launches it, and the Settings window opens on the Models tab for the one-time model download (~2.8 GB). Then grant Microphone, Accessibility and Input Monitoring when asked, quit and reopen once, and you are dictating.
+It checks you are on Apple Silicon + macOS 14, downloads the latest release (75 MB zip, 230 MB installed) to `~/Applications/LocalFlow.app`, launches it, and the Settings window opens on the Models tab for the one-time model download (~2.8 GB). Then grant Microphone, Accessibility and Input Monitoring when asked, quit and reopen once, and you are dictating.
 
 **Or the DMG:** download `LocalFlow-<version>.dmg` from [Releases](https://github.com/gdrmedia/localflow/releases), drag LocalFlow to Applications, open it. Because this build is not notarized, macOS will say it cannot verify the developer: go to System Settings → Privacy & Security → scroll down → **Open Anyway** (once). The installer above avoids that step because files fetched with `curl` are not quarantined.
 

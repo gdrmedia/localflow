@@ -20,7 +20,7 @@ tag=$(printf '%s' "$api" | grep -o '"tag_name": *"[^"]*"' | head -1 | sed -E 's/
 [[ -n "$url" ]] || die "no LocalFlow zip in the latest release"
 
 tmp=$(mktemp -d)
-say "downloading LocalFlow $tag (~230 MB)"
+say "downloading LocalFlow $tag (~75 MB)"
 curl -fL --progress-bar "$url" -o "$tmp/LocalFlow.zip"
 
 say "installing to $DEST/LocalFlow.app"
